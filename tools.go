@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -53,7 +54,7 @@ func (t *Tools) UploadFiles(r *http.Request, uploadDir string, rename ...bool) (
 
 	for _, fHeaders := range r.MultipartForm.File {
 		for _, hdr := range fHeaders {
-			uploadedFiles, err = func(upuploadedFiles []*UploadedFile) ([]*UploadedFile, error) {
+			uploadedFiles, err = func(uploadedFiles []*UploadedFile) ([]*UploadedFile, error) {
 				var uploadedFile UploadedFile
 				infile, err := hdr.Open()
 				if err != nil {
@@ -72,6 +73,7 @@ func (t *Tools) UploadFiles(r *http.Request, uploadDir string, rename ...bool) (
 
 				if len(t.AllowedFileTypes) > 0 {
 					for _, v := range t.AllowedFileTypes {
+						log.Printf("%s, %s\n", fileType, v)
 						if strings.EqualFold(fileType, v) {
 							allowed = true
 						}
@@ -95,6 +97,8 @@ func (t *Tools) UploadFiles(r *http.Request, uploadDir string, rename ...bool) (
 					uploadedFile.NewFileName = hdr.Filename
 				}
 
+				uploadedFile.OriginalFileName = hdr.Filename
+
 				var outfile *os.File
 				defer outfile.Close()
 
@@ -108,9 +112,9 @@ func (t *Tools) UploadFiles(r *http.Request, uploadDir string, rename ...bool) (
 					uploadedFile.FileSize = fileSize
 				}
 
-				upuploadedFiles = append(upuploadedFiles, &uploadedFile)
+				uploadedFiles = append(uploadedFiles, &uploadedFile)
 
-				return upuploadedFiles, nil
+				return uploadedFiles, nil
 			}(uploadedFiles)
 			if err != nil {
 				return uploadedFiles, err
